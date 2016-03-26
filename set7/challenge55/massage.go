@@ -81,7 +81,7 @@ func firstRoundMassage(block []byte) [16]uint32{
 	next = leftrotate(b + f(c,d,a) + words[3], 19)
 	next |= 1 << 6
 	next &^= 1 << 7
-	next &^= 1 << 11
+	next &^= 1 << 10
 	next &^= 1 << 25
 	words[3] = rightrotate(next, 19) - b - f(c, d, a)
 	b = next
