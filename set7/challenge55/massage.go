@@ -32,10 +32,6 @@ func rightrotate(x uint32, shift uint) uint32 {
 	return (x >> shift) | (x << (32 - shift))
 }
 
-func ithBit(num uint32, i uint) uint32 {
-	return (num ^ uint32(1 << i)) >> i
-}
-
 // Set bit at position pos in word to be equal to that bit
 // in other, and return it
 func setBitEqual(word, other uint32, pos uint) uint32 {
@@ -277,5 +273,6 @@ func main() {
 		}
 
 		testBlockIsUnchanged(decoded)
+		ensureFirstRound(decoded)
 	}
 }
