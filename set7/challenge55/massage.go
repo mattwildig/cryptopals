@@ -42,17 +42,11 @@ func setBitEqual(word, other uint32, pos uint) uint32 {
 	return (mask & word) | set
 }
 
-func firstRoundMassage(block []byte) [16]uint32{
-
-	var words [16]uint32
+func firstRoundMassage(words [16]uint32) [16]uint32{
 
 	// hard code initial MD4 state for now
 	a, b, c, d := utils.H0, utils.H1, utils.H2, utils.H3
 	var next uint32
-
-	for i := 0; i < 16; i++ {
-		words[i] = binary.BigEndian.Uint32(block[i * 4: (i + 1) * 4])
-	}
 
 	// a1,7 = b0,7
 	next = leftrotate(a + f(b,c,d) + words[0], 3)    // as md4
@@ -234,6 +228,22 @@ func firstRoundMassage(block []byte) [16]uint32{
 	return words
 }
 
+func blockToWords(block []byte) [16]uint32{
+
+	if len(block) != 64 {
+		text.PrintRed("Block length should be 64 bytes")
+		panic("")
+	}
+
+	var words [16]uint32
+
+	for i := 0; i < 16; i++ {
+		words[i] = binary.BigEndian.Uint32(block[i * 4: (i + 1) * 4])
+	}
+
+	return words
+}
+
 func joinWords(words [16]uint32) []byte {
 	ret := make([]byte, 64)
 	p := ret
@@ -245,7 +255,7 @@ func joinWords(words [16]uint32) []byte {
 }
 
 func testBlockIsUnchanged(blk []byte) {
-	ary := firstRoundMassage(blk)
+	ary := firstRoundMassage(blockToWords(blk))
 	massaged := joinWords(ary)
 
 	if bytes.Equal(blk, massaged) {
@@ -271,8 +281,9 @@ func main() {
 			fmt.Println(err)
 			continue
 		}
-
 		testBlockIsUnchanged(decoded)
-		ensureFirstRound(decoded)
+
+		words := blockToWords(decoded)
+		ensureFirstRound(words)
 	}
 }

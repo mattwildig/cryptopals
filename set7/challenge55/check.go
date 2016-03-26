@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/binary"
 	"fmt"
 
 	"cryptopals/utils"
@@ -38,15 +37,10 @@ func assertOne(word uint32, pos uint) {
 
 // Perform first round of hashing, ensuring all first round
 // conditions still hold
-func ensureFirstRound(block []byte) {
-	var words [16]uint32
+func ensureFirstRound(words [16]uint32) {
 
 	// hard code initial MD4 state for now
 	a, b, c, d := utils.H0, utils.H1, utils.H2, utils.H3
-
-	for i := 0; i < 16; i++ {
-		words[i] = binary.BigEndian.Uint32(block[i * 4: (i + 1) * 4])
-	}
 
 	// a1,7 = b0,7
 	step = 1
