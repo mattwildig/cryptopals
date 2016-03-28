@@ -37,10 +37,12 @@ func assertOne(word uint32, pos uint) {
 
 // Perform first round of hashing, ensuring all first round
 // conditions still hold
-func ensureFirstRound(words [16]uint32) {
+func ensureFirstRound(words messageWords) {
 
 	// hard code initial MD4 state for now
 	a, b, c, d := utils.H0, utils.H1, utils.H2, utils.H3
+
+	errors = false // yuck global!
 
 	// a1,7 = b0,7
 	step = 1
@@ -204,5 +206,25 @@ func ensureFirstRound(words [16]uint32) {
 		text.PrintRed("Round one conditions did not hold")
 	} else {
 		text.PrintGreen("Round one conditions held")
+	}
+}
+
+func ensureSecondRound(words messageWords, s state) {
+	a, b, c, d := &s.a, &s.b, &s.c, &s.d
+	errors = false
+
+	// a5,19 = c4,19, a5,26 = 1, a5,27 = 0, a5,29 = 1, a5,32 = 1
+	step = 1
+	next := leftrotate(a[4] + g(b[4], c[4], d[4]) + words[0] + 0x5A827999, 3)
+	assertEqual(next, c[4], 18)
+	assertOne(next, 25)
+	assertZero(next, 26)
+	assertOne(next, 28)
+	assertOne(next, 31)
+
+	if errors {
+		text.PrintRed("Round two conditions did not hold")
+	} else {
+		text.PrintGreen("Round two conditions held (***)")
 	}
 }
