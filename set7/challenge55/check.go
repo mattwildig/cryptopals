@@ -39,6 +39,8 @@ func assertOne(word uint32, pos uint) {
 // conditions still hold
 func ensureFirstRound(words messageWords) {
 
+	fmt.Println("Testing Round 1")
+
 	// hard code initial MD4 state for now
 	a, b, c, d := utils.H0, utils.H1, utils.H2, utils.H3
 
@@ -209,18 +211,34 @@ func ensureFirstRound(words messageWords) {
 	}
 }
 
-func ensureSecondRound(words messageWords, s state) {
-	a, b, c, d := &s.a, &s.b, &s.c, &s.d
+type startState struct {
+	a, b, c, d uint32
+}
+
+func ensureSecondRound(words messageWords, s startState) {
+
+	fmt.Println("Testing Round 2")
+
+	a, b, c, d := s.a, s.b, s.c, s.d
 	errors = false
 
 	// a5,19 = c4,19, a5,26 = 1, a5,27 = 0, a5,29 = 1, a5,32 = 1
 	step = 1
-	next := leftrotate(a[4] + g(b[4], c[4], d[4]) + words[0] + 0x5A827999, 3)
-	assertEqual(next, c[4], 18)
-	assertOne(next, 25)
-	assertZero(next, 26)
-	assertOne(next, 28)
-	assertOne(next, 31)
+	a = leftrotate(a + g(b, c, d) + words[0] + 0x5A827999, 3)
+	assertEqual(a, c, 18)
+	assertOne(a, 25)
+	assertZero(a, 26)
+	assertOne(a, 28)
+	assertOne(a, 31)
+
+	// d5,19 = a5,19, d5,26 = b4,26, d5,27 = b4,27, d5,29 = b4,29, d5,32 = b4,32
+	step++
+	d = leftrotate(d + g(a,b,c) + words[4] + 0x5A827999, 5)
+	assertEqual(d, a, 18)
+	assertEqual(d, b, 25)
+	assertEqual(d, b, 26)
+	assertEqual(d, b, 28)
+	assertEqual(d, b, 31)
 
 	if errors {
 		text.PrintRed("Round two conditions did not hold")

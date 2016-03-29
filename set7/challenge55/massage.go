@@ -206,12 +206,14 @@ func firstRoundMassage(words messageWords, s state) ([16]uint32, state){
 	words[14] = rightrotate(c[4], 11) - c[3] - f(d[4], a[4], b[3])
 
 	// b4,19 = 0, b4,26 = c4,26 = 1, b4,27 = 1, b4,29 = 1, b4,30 = 0
+	// also b4,32 = c4,32 (maybe)
 	b[4] = leftrotate(b[3] + f(c[4], d[4], a[4]) + words[15], 19)
 	b[4] &^= 1 << 18
 	b[4] |= 1 << 25
 	b[4] |= 1 << 26
 	b[4] |= 1 << 28
 	b[4] &^= 1 << 29
+	// b[4] = setBitEqual(b[4], c[4], 31)
 	words[15] = rightrotate(b[4], 19) - b[3] - f(c[4], d[4], a[4])
 
 	return words, s
@@ -226,50 +228,117 @@ func furtherModifications(words messageWords, s state) messageWords {
 	a, b, c, d := &s.a, &s.b, &s.c, &s.d
 
 	// a5,19 = c4,19, a5,26 = 1, a5,27 = 0, a5,29 = 1, a5,32 = 1
+	// => positions 15, 22, 23, 25, 28
+	// and
+	// a1,7 = b0,7 (no effect)
+	// also
+	// d1,7 = 0, d1,8 = a1,8, d1,11 = a1,11 (no effect)
 	a[5] = leftrotate(a[4] + g(b[4], c[4], d[4]) + words[0] + 0x5A827999, 3)
-	a1p := a[1]
 
 	if !bitPosEqual(a[5], c[4], 18) {
-		fmt.Println("a5 and c5 differ at bit 18")
 		words[0] ^= 1 << 15
-		a1p ^= (1 << 18)
+		a[1] = leftrotate(a[0] + f(b[0], c[0], d[0]) + words[0], 3)
 		a[5] = leftrotate(a[4] + g(b[4], c[4], d[4]) + words[0] + 0x5A827999, 3)
 	}
 	if ithBit(a[5], 25) != 1 {
-		fmt.Println("25th bit of a5 wrong")
-
 		words[0] ^= 1 << 22
-		a1p ^= (1 << 25)
+		a[1] = leftrotate(a[0] + f(b[0], c[0], d[0]) + words[0], 3)
 		a[5] = leftrotate(a[4] + g(b[4], c[4], d[4]) + words[0] + 0x5A827999, 3)
 	}
 	if ithBit(a[5], 26) != 0 {
-		fmt.Println("26th bit of a5 wrong")
-
 		words[0] ^= 1 << 23
-		a1p ^= (1 << 26)
+		a[1] = leftrotate(a[0] + f(b[0], c[0], d[0]) + words[0], 3)
 		a[5] = leftrotate(a[4] + g(b[4], c[4], d[4]) + words[0] + 0x5A827999, 3)
 	}
 	if ithBit(a[5], 28) != 1 {
-		fmt.Println("28th bit of a5 wrong")
-
 		words[0] ^= 1 << 25
-		a1p ^= (1 << 28)
+		a[1] = leftrotate(a[0] + f(b[0], c[0], d[0]) + words[0], 3)
 		a[5] = leftrotate(a[4] + g(b[4], c[4], d[4]) + words[0] + 0x5A827999, 3)
 	}
 	if ithBit(a[5], 31) != 1 {
-		fmt.Println("31th bit of a5 wrong")
-
 		words[0] ^= 1 << 28
-		a1p ^= (1 << 31)
+		a[1] = leftrotate(a[0] + f(b[0], c[0], d[0]) + words[0], 3)
 		a[5] = leftrotate(a[4] + g(b[4], c[4], d[4]) + words[0] + 0x5A827999, 3)
 	}
 
-	words[1] = rightrotate(d[1], 7) - d[0] - f(a1p, b[0], c[0])
-	words[2] = rightrotate(c[1], 11) - c[0] - f(d[1], a1p, b[0])
-	words[3] = rightrotate(b[1], 19) - b[0] - f(c[1], d[1], a1p)
-	words[4] = rightrotate(a[2], 3) - a1p - f(b[1], c[1], d[1])
+	words[1] = rightrotate(d[1], 7) - d[0] - f(a[1], b[0], c[0])
+	words[2] = rightrotate(c[1], 11) - c[0] - f(d[1], a[1], b[0])
+	words[3] = rightrotate(b[1], 19) - b[0] - f(c[1], d[1], a[1])
+	words[4] = rightrotate(a[2], 3) - a[1] - f(b[1], c[1], d[1])
+
+	// d5,19 = a5,19, d5,26 = b4,26, d5,27 = b4,27, d5,29 = b4,29, d5,32 = b4,32
+	// (shift = 5)
+	// => positions 13, 20, 21, 23, 26
+	// and
+	// a2,8 = 1, a2,11 = 1, a2,26 = 0, a2,14 = b1,14
+	// (shift = 3)
+	// => positions 4, 7, 22, 10 (22 can change)
+	// and more...
+	// d2,14 = 0, d2,19 = a2,19, d2,20 = a2,20, d2,21 = a2,21, d2,22 = a2,22, d2,26 = 1
+	// => positions 15, 16, 17, 18 (all)
+	d[5] = leftrotate(d[4] + g(a[5], b[4], c[4]) + words[4] + 0x5A827999, 5)
+
+	if !bitPosEqual(d[5], a[5], 18) { // pos 13
+		words[4] ^= 1 << 13
+		a[2] = leftrotate(a[1] + f(b[1], c[1], d[1]) + words[4], 3)
+		d[5] = leftrotate(d[4] + g(a[5], b[4], c[4]) + words[4] + 0x5A827999, 5)
+	}
+	if !bitPosEqual(d[2], a[2], 18) { // pos 15
+		words[4] ^= 1 << 15
+		a[2] = leftrotate(a[1] + f(b[1], c[1], d[1]) + words[4], 3)
+		d[5] = leftrotate(d[4] + g(a[5], b[4], c[4]) + words[4] + 0x5A827999, 5)
+	}
+	if !bitPosEqual(d[2], a[2], 19) { // pos 16
+		words[4] ^= 1 << 16
+		a[2] = leftrotate(a[1] + f(b[1], c[1], d[1]) + words[4], 3)
+		d[5] = leftrotate(d[4] + g(a[5], b[4], c[4]) + words[4] + 0x5A827999, 5)
+	}
+	if !bitPosEqual(d[2], a[2], 20) { // pos 17
+		words[4] ^= 1 << 17
+		a[2] = leftrotate(a[1] + f(b[1], c[1], d[1]) + words[4], 3)
+		d[5] = leftrotate(d[4] + g(a[5], b[4], c[4]) + words[4] + 0x5A827999, 5)
+	}
+	if !bitPosEqual(d[2], a[2], 21) { // pos 18
+		words[4] ^= 1 << 18
+		a[2] = leftrotate(a[1] + f(b[1], c[1], d[1]) + words[4], 3)
+		d[5] = leftrotate(d[4] + g(a[5], b[4], c[4]) + words[4] + 0x5A827999, 5)
+	}
+	if !bitPosEqual(d[5], b[4], 25) { //pos 20
+		words[4] ^= 1 << 20
+		a[2] = leftrotate(a[1] + f(b[1], c[1], d[1]) + words[4], 3)
+		d[5] = leftrotate(d[4] + g(a[5], b[4], c[4]) + words[4] + 0x5A827999, 5)
+	}
+	if !bitPosEqual(d[5], b[4], 26) { // pos 21
+		words[4] ^= 1 << 21
+		a[2] = leftrotate(a[1] + f(b[1], c[1], d[1]) + words[4], 3)
+		d[5] = leftrotate(d[4] + g(a[5], b[4], c[4]) + words[4] + 0x5A827999, 5)
+	}
+	if ithBit(a[2], 25) != 0 { // pos 22
+		words[4] ^= 1 << 22
+		a[2] = leftrotate(a[1] + f(b[1], c[1], d[1]) + words[4], 3)
+		d[5] = leftrotate(d[4] + g(a[5], b[4], c[4]) + words[4] + 0x5A827999, 5)
+	}
+	if !bitPosEqual(d[5], b[4], 28) { // pos 23
+		words[4] ^= 1 << 23
+		a[2] = leftrotate(a[1] + f(b[1], c[1], d[1]) + words[4], 3)
+		d[5] = leftrotate(d[4] + g(a[5], b[4], c[4]) + words[4] + 0x5A827999, 5)
+	}
+	if !bitPosEqual(d[5], b[4], 31) { // pos 26
+		words[4] ^= 1 << 26
+		a[2] = leftrotate(a[1] + f(b[1], c[1], d[1]) + words[4], 3)
+		d[5] = leftrotate(d[4] + g(a[5], b[4], c[4]) + words[4] + 0x5A827999, 5)
+	}
+
+	words[5] = rightrotate(d[2], 7) - d[1] - f(a[2], b[1], c[1])
+	words[6] = rightrotate(c[2], 11) - c[1] - f(d[2], a[2], b[1])
+	words[7] = rightrotate(b[2], 19) - b[1] - f(c[2], d[2], a[2])
+	words[8] = rightrotate(a[3], 3) - a[2] - f(b[2], c[2], d[2])
 
 	return words
+}
+
+func printBin(x uint32) {
+	fmt.Printf("%032b\n", x)
 }
 
 func blockToWords(block []byte) messageWords{
@@ -340,10 +409,10 @@ func main() {
 	s := state{}
 	s.a[0], s.b[0], s.c[0], s.d[0] = utils.H0, utils.H1, utils.H2, utils.H3
 	massaged, s := firstRoundMassage(test_words, s)
-	ensureFirstRound(massaged)
-	ensureSecondRound(massaged, s)
+	// ensureFirstRound(massaged)
+	// ensureSecondRound(massaged, startState{s.a[4], s.b[4], s.c[4], s.d[4]})
 	massaged = furtherModifications(massaged, s)
 	ensureFirstRound(massaged)
-	ensureSecondRound(massaged, s)
+	ensureSecondRound(massaged, startState{s.a[4], s.b[4], s.c[4], s.d[4]})
 
 }
