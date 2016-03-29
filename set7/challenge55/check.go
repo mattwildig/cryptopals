@@ -240,6 +240,15 @@ func ensureSecondRound(words messageWords, s startState) {
 	assertEqual(d, b, 28)
 	assertEqual(d, b, 31)
 
+	// c5,26 = d5,26, c5,27 = d5,27, c5,29 = d5,29, c5,30 = d5,30, c5,32 = d5,32
+	step++
+	c = leftrotate(c + g(d,a,b) + words[8] + 0x5A827999, 9)
+	assertEqual(c, d, 25)
+	assertEqual(c, d, 26)
+	assertEqual(c, d, 28)
+	assertEqual(c, d, 29)
+	assertEqual(c, d, 31)
+
 	if errors {
 		text.PrintRed("Round two conditions did not hold")
 	} else {
