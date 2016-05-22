@@ -5,7 +5,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
-	// "strings"
+	"strings"
 
 	"cryptopals/utils"
 	"cryptopals/utils/text"
@@ -79,6 +79,9 @@ func firstRoundMassage(words messageWords, s state) ([16]uint32, state){
 	b[1] &^= 1 << 7
 	b[1] &^= 1 << 10
 	b[1] &^= 1 << 25
+
+	//extra extra
+	// b[1] &^= 1 << 19
 	words[3] = rightrotate(b[1], 19) - b[0] - f(c[1], d[1], a[1])
 
 	// a2,8 = 1, a2,11 = 1, a2,26 = 0, a2,14 = b1,14
@@ -87,6 +90,12 @@ func firstRoundMassage(words messageWords, s state) ([16]uint32, state){
 	a[2] |= 1 << 10
 	a[2] &^= 1 << 25
 	a[2] = setBitEqual(a[2], b[1], 13)
+
+	// extra
+	a[2] = setBitEqual(a[2], b[1], 16)
+	// a[2] = setBitEqual(a[2], b[1], 17)
+	// a[2] = setBitEqual(a[2], b[1], 19)
+	// a[2] = setBitEqual(a[2], b[1], 22)
 	words[4] = rightrotate(a[2], 3) - a[1] - f(b[1], c[1], d[1])
 
 	// d2,14 = 0, d2,19 = a2,19, d2,20 = a2,20, d2,21 = a2,21, d2,22 = a2,22, d2,26 = 1
@@ -97,6 +106,12 @@ func firstRoundMassage(words messageWords, s state) ([16]uint32, state){
 	d[2] = setBitEqual(d[2], a[2], 20)
 	d[2] = setBitEqual(d[2], a[2], 21)
 	d[2] |= 1 << 25
+
+	// extra for advanced modification
+	d[2] &^= 1 << 16
+	// d[2] &^= 1 << 17
+	// d[2] &^= 1 << 19
+	// d[2] &^= 1 << 22
 	words[5] = rightrotate(d[2], 7) - d[1] - f(a[2], b[1], c[1])
 
 	// c2,13 = d2,13, c2,14 = 0, c2,15 = d2,15, c2,19 = 0, c2,20 = 0, c2,21 = 1, c2,22 = 0
@@ -108,6 +123,12 @@ func firstRoundMassage(words messageWords, s state) ([16]uint32, state){
 	c[2] &^= 1 << 19
 	c[2] |= 1 << 20
 	c[2] &^= 1 << 21
+
+	//extra
+	c[2] &^= 1 << 16
+	// c[2] &^= 1 << 17
+	// c[2] &^= 1 << 19
+	// c[2] &^= 1 << 22
 	words[6] = rightrotate(c[2], 11) - c[1] - f(d[2], a[2], b[1])
 
 	// b2,13 = 1, b2,14 = 1, b2,15 = 0, b2,17 = c2,17, b2,19 = 0, b2,20 = 0, b2,21 = 0, b2,22 = 0
@@ -120,6 +141,12 @@ func firstRoundMassage(words messageWords, s state) ([16]uint32, state){
 	b[2] &^= 1 << 19
 	b[2] &^= 1 << 20
 	b[2] &^= 1 << 21
+
+	//extra
+	b[2] &^= 1 << 16 //!!!!
+	// b[2] &^= 1 << 17
+	// b[2] &^= 1 << 19
+	// b[2] &^= 1 << 22
 	words[7] = rightrotate(b[2], 19) - b[1] - f(c[2], d[2], a[2])
 
 	// a3,13 = 1, a3,14 = 1, a3,15 = 1, a3,17 = 0, a3,19 = 0, a3,20 = 0, a3,21 = 0,
@@ -334,11 +361,52 @@ func furtherModifications(words messageWords, s state) messageWords {
 	words[7] = rightrotate(b[2], 19) - b[1] - f(c[2], d[2], a[2])
 	words[8] = rightrotate(a[3], 3) - a[2] - f(b[2], c[2], d[2])
 
+	// mmm...
+	// c5,26 = d5,26, c5,27 = d5,27, c5,29 = d5,29, c5,30 = d5,30, c5,32 = d5,32
+	// (shift = 9)
+	// positions 16, 17, 19, 20, 22
+	// c[5] = leftrotate(c[4] + g(d[5] ,a[5], b[4]) + words[8] + 0x5A827999, 9)
+	// if !bitPosEqual(c[5], d[5], 25) {
+	// 	words[5] ^= 1 << 9
+	// 	words[8] ^= 1 << 16
+	// 	words[9] ^= 1 << 16
+	// // 	c[5] = leftrotate(c[4] + g(d[5] ,a[5], b[4]) + words[8] + 0x5A827999, 9)
+	// }
+	// if !bitPosEqual(c[5], d[5], 26) {
+	// 	words[5] += 1 << 10
+	// 	words[8] -= 1 << 17
+	// 	words[9] -= 1 << 17
+	// 	c[5] = leftrotate(c[4] + g(d[5] ,a[5], b[4]) + words[8] + 0x5A827999, 9)
+	// }
+	// if !bitPosEqual(c[5], d[5], 28) {
+	// 	words[5] += 1 << 12
+	// 	words[8] -= 1 << 19
+	// 	words[9] -= 1 << 19
+	// 	c[5] = leftrotate(c[4] + g(d[5] ,a[5], b[4]) + words[8] + 0x5A827999, 9)
+	// }
+	// if !bitPosEqual(c[5], d[5], 31) {
+	// 	words[5] += 1 << 15
+	// 	words[8] -= 1 << 24
+	// 	words[9] -= 1 << 24
+	// 	c[5] = leftrotate(c[4] + g(d[5] ,a[5], b[4]) + words[8] + 0x5A827999, 9)
+	// }
+
 	return words
 }
 
 func printBin(x uint32) {
 	fmt.Printf("%032b\n", x)
+}
+
+func deriveCollision(words messageWords) messageWords {
+	var derived messageWords
+	derived = words
+
+	derived[1] = words[1] + (1 << 31)
+	derived[2] = words[2] + ((1 << 31) - (1 << 28))
+	derived[12] = words[12] - (1 << 16)
+
+	return derived
 }
 
 func blockToWords(block []byte) messageWords{
@@ -367,6 +435,16 @@ func joinWords(words [16]uint32) []byte {
 	return ret
 }
 
+func joinWordsLE(words [16]uint32) []byte {
+	ret := make([]byte, 64)
+	p := ret
+	for _, w := range(words) {
+		binary.LittleEndian.PutUint32(p, w)
+		p = p[4:]
+	}
+	return ret
+}
+
 func testBlockIsUnchanged(blk []byte) {
 	s := state{}
 	s.a[0], s.b[0], s.c[0], s.d[0] = utils.H0, utils.H1, utils.H2, utils.H3
@@ -383,7 +461,25 @@ func testBlockIsUnchanged(blk []byte) {
 	}
 }
 
+func massage(words messageWords) messageWords {
+	s := state{}
+	s.a[0], s.b[0], s.c[0], s.d[0] = utils.H0, utils.H1, utils.H2, utils.H3
+
+	words, s = firstRoundMassage(words, s)
+	words = furtherModifications(words, s)
+	return words
+}
+
+func MD4Block(data []byte)[]byte {
+	s := utils.MD4_t{}
+	s.Init(data)
+	s.Process()
+
+	return s.Finalise()
+}
+
 func main() {
+	fmt.Println("Starting...")
 	// colliding_hashes_from_paper := []string{
 	//     "4d7a9c83 56cb927a b9d5a578 57a7a5ee de748a3c dcc366b3 b683a020 3b2a5d9f c69d71b3 f9e99198 d79f805e a63bb2e8 45dd8e31 97e31fe5 2794bf08 b9e8c3e9",
 	//     "4d7a9c83 56cb927a b9d5a578 57a7a5ee de748a3c dcc366b3 b683a020 3b2a5d9f c69d71b3 f9e99198 d79f805e a63bb2e8 45dd8e31 97e31fe5 f713c240 a7b8cf69",
@@ -403,16 +499,94 @@ func main() {
 	// 	ensureFirstRound(words)
 	// }
 
-	test_block := utils.GenKey(64)
-	test_words := blockToWords(test_block)
+	// test_block := utils.GenKey(64)
+	// test_words := blockToWords(test_block)
 
-	s := state{}
-	s.a[0], s.b[0], s.c[0], s.d[0] = utils.H0, utils.H1, utils.H2, utils.H3
-	massaged, s := firstRoundMassage(test_words, s)
+	// s := state{}
+	// s.a[0], s.b[0], s.c[0], s.d[0] = utils.H0, utils.H1, utils.H2, utils.H3
+	// massaged, s := firstRoundMassage(test_words, s)
+	// // ensureFirstRound(massaged)
+	// ensureSecondRound(massaged, startState{s.a[4], s.b[4], s.c[4], s.d[4]})
+	// massaged = furtherModifications(massaged, s)
 	// ensureFirstRound(massaged)
 	// ensureSecondRound(massaged, startState{s.a[4], s.b[4], s.c[4], s.d[4]})
-	massaged = furtherModifications(massaged, s)
-	ensureFirstRound(massaged)
-	ensureSecondRound(massaged, startState{s.a[4], s.b[4], s.c[4], s.d[4]})
+
+	pair_from_paper := []string{
+		"4d7a9c83 56cb927a b9d5a578 57a7a5ee de748a3c dcc366b3 b683a020 3b2a5d9f c69d71b3 f9e99198 d79f805e a63bb2e8 45dd8e31 97e31fe5 2794bf08 b9e8c3e9",
+		"4d7a9c83 d6cb927a 29d5a578 57a7a5ee de748a3c dcc366b3 b683a020 3b2a5d9f c69d71b3 f9e99198 d79f805e a63bb2e8 45dc8e31 97e31fe5 2794bf08 b9e8c3e9",
+	}
+
+	var raw_messages [2][]byte
+
+	for i, s := range(pair_from_paper) {
+		s = strings.Replace(s, " ", "", -1)
+		decoded, err := hex.DecodeString(s)
+		if err != nil {
+			text.PrintRed("Invalid hex string:")
+			fmt.Println(err)
+			continue
+		}
+		raw_messages[i] = decoded
+	}
+
+	collision := joinWords(deriveCollision(blockToWords(raw_messages[0])))
+
+	if bytes.Equal(raw_messages[1], collision) {
+		text.PrintGreen("Match")
+		fmt.Println(hex.EncodeToString(MD4Block(collision)))
+	} else {
+		text.PrintRed("No Match")
+		expected_string := hex.EncodeToString(raw_messages[1])
+		collision_string := hex.EncodeToString(collision)
+
+		diff := make([]byte, len(collision_string), 2 * len(collision_string))
+
+		for i, expected := range(expected_string) {
+			if expected == rune(collision_string[i]) {
+				diff = append(diff, byte(expected))
+			} else {
+				s := fmt.Sprintf("\x1b[31m%s\x1b[m", string(collision_string[i]))
+				diff = append(diff, []byte(s)...)
+			}
+
+		}
+		fmt.Println(expected_string)
+		fmt.Println(string(diff))
+	}
+
+	for i := 0; true; i++ {
+
+		if i % 100000 == 0 {
+			fmt.Println(i)
+		}
+		var candidate []byte
+		if i == 0 {
+			candidate = raw_messages[0]
+		} else {
+			candidate = utils.GenKey(64)
+		}
+		candidateWords := blockToWords(candidate)
+
+		massaged := massage(candidateWords)
+
+		derivedWords := deriveCollision(massaged)
+		derived := joinWords(derivedWords)
+
+		hashCandidate := MD4Block(candidate)
+		hashDerived := MD4Block(derived)
+
+		if bytes.Equal(hashCandidate, hashDerived) {
+			text.PrintGreen("Found collision")
+			fmt.Println(hex.EncodeToString(candidate))
+			fmt.Println(hex.EncodeToString(derived))
+			fmt.Println(hex.EncodeToString(hashCandidate))
+			break
+		}
+
+		if i % 100000 == 0 {
+			fmt.Println(hex.EncodeToString(hashCandidate))
+			fmt.Println(hex.EncodeToString(hashDerived))
+		}
+	}
 
 }
