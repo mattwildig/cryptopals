@@ -1,14 +1,14 @@
 package main
 
 import (
-	"net/http"
-	"cryptopals/utils"
-	// "bytes"
-	"fmt"
 	"encoding/hex"
-	"time"
+	"fmt"
+	"net/http"
 	"os"
 	"os/signal"
+	"time"
+
+	"cryptopals/utils"
 )
 
 var key []byte = []byte("hello this is key")
@@ -53,7 +53,6 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// if bytes.Equal(signature_bytes, calculated) {
 	if insecure_compare(calculated, signature_bytes) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("{\"status\": \"ok\"}\n"))
