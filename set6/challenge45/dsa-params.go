@@ -1,7 +1,7 @@
 package main
 
 import (
-	"encoding/hex"
+	// "encoding/hex"
 	"fmt"
 	"math/big"
 
@@ -16,67 +16,74 @@ func main() {
 
 	key = dsa.CreateKeyFromParams(key)
 
-	fmt.Println("Generated key")
+	fmt.Println("Generated key with G = 0")
 
 	message := []byte("This is a message.")
 
 	sig := key.Sign(message)
 
-	fmt.Println("Signed message")
+	fmt.Println("Signed message, signature is:")
 
-	fmt.Println(sig.R)
-	fmt.Println(sig.S)
+	fmt.Printf("\tR: %d\n", sig.R)
+	fmt.Printf("\tS: %d\n", sig.S)
 
 	public := key.Public
 
 	v := public.Verify(message, sig)
 
-	fmt.Println(v)
+	fmt.Printf("Real message verifies: %t\n", v)
 
 	v = public.Verify([]byte("Fraudulant"), sig)
 
-	fmt.Println(v)
+	fmt.Printf("False message verifies: %t\n", v)
 
 	new_sig := dsa.Signature{big.NewInt(0), big.NewInt(10)}
 	v = public.Verify([]byte("Banana"), new_sig)
 
-	fmt.Println(v)
-	fmt.Println()
-	// fmt.Println("---------------------------------------------------------------")
-	// fmt.Println()
-	// scratch := new(big.Int)
-	// fmt.Println(scratch.Mod(dsa.P, dsa.Q))
+	fmt.Printf("Arbitrary signature (with R = 0) verifies: %t\n", v)
 
-	// fmt.Println()
 	fmt.Println("---------------------------------------------------------------")
-	fmt.Println()
 
-	key.G.Add(key.P, utils.One)
-	key = dsa.CreateKeyFromParams(key)
-	fmt.Println(hex.EncodeToString(key.Y.Bytes()))
+	key = dsa.CreateKey()
+	fmt.Println("Created new key")
 
 	sig = key.Sign(message)
-	fmt.Println(sig.R)
-	fmt.Println(sig.S)
+	fmt.Println("Signed message, signature is:")
+	fmt.Printf("\tR: %d\n", sig.R)
+	fmt.Printf("\tS: %d\n", sig.S)
 
-	// fmt.Println(key.Verify(message, sig))
+	public = key.Public
 
-	// WFT is the page saying here with all that s = r/z % q malarkey?
-	// fmt.Println(key.Verify([]byte("Apple"), dsa.Signature{big.NewInt(1), big.NewInt(7)}))
+	v = public.Verify(message, sig)
+	fmt.Printf("Signature verifies: %t\n", v)
+
+	fmt.Println("Setting G to P + 1")
+	public.G.Add(public.P, utils.One)
+
+	v = public.Verify(message, sig)
+	fmt.Printf("Signature still verifies: %t\n", v)
+
+	fmt.Println("Creating \"magic\" signature, signature is:")
 
 	z := big.NewInt(2)
-	inv_z, _ := utils.InvMod(z, key.Q)
 
 	r := new(big.Int)
-	r.Exp(key.Y, z, key.P).Mod(r, key.Q)
+	r.Exp(public.Y, z, public.P).Mod(r, public.Q)
 	s := new(big.Int)
+
+	inv_z, _ := utils.InvMod(z, key.Q)
 	s.Mul(r, inv_z).Mod(s, key.Q)
 
-	fmt.Println(r)
-	fmt.Println(s)
-	sig2 := dsa.Signature{R: r, S: utils.One}
+	sig2 := dsa.Signature{R: r, S: s}
 
-	fmt.Println()
-	fmt.Println(key.Verify([]byte("Banana"), sig2))
-	fmt.Println(key.Verify([]byte("Apple"), sig2))
+	fmt.Printf("\tR: %d\n", sig2.R)
+	fmt.Printf("\tS: %d\n", sig2.S)
+
+	v = public.Verify(message, sig2)
+	fmt.Printf("Magic signature verifies message: %t\n", v)
+
+	v = public.Verify([]byte("Fraudulant"), sig2)
+
+	fmt.Printf("False message verifies with magic signature: %t\n", v)
+
 }
