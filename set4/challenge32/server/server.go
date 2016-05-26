@@ -17,7 +17,7 @@ var response_string = "{\"status\": \"ok\", \"file\": \"%s\", \"signature\": \"%
 
 var hash_length int64
 
-const DELAY time.Duration = 10 * time.Millisecond
+const DELAY time.Duration = 1 * time.Millisecond
 
 func insecure_compare(known, test []byte) bool {
 	if len(known) != len(test) {
