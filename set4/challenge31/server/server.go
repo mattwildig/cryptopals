@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"time"
 
 	"cryptopals/utils"
@@ -13,6 +14,8 @@ import (
 
 var key []byte = []byte("hello this is key")
 var response_string = "{\"status\": \"ok\", \"file\": \"%s\", \"signature\": \"%s\"}\n"
+
+var hash_length int64
 
 func insecure_compare(known, test []byte) bool {
 	if len(known) != len(test) {
@@ -45,6 +48,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	calculated := utils.HMAC_SHA1(key, []byte(file))
+	calculated = calculated[:hash_length]
 	signature_bytes, e := hex.DecodeString(signature)
 
 	if e != nil {
@@ -72,6 +76,18 @@ func main() {
 	c := make(chan os.Signal, 1)
 	go handleSignal(c)
 	signal.Notify(c, os.Interrupt)
+
+	if len(os.Args) == 2 {
+		var e error
+		hash_length, e = strconv.ParseInt(os.Args[1], 0, 0)
+		if e != nil {
+			fmt.Println("Arg must be an int (length of hash to check)")
+			os.Exit(1)
+		}
+		fmt.Printf("Using first %s bytes of hash\n", os.Args[1])
+	} else {
+		hash_length = 20
+	}
 
 	fmt.Println("Starting server...")
 
