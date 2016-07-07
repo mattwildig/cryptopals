@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"crypto/rc4"
+	"encoding/base64"
 	"flag"
 	"fmt"
 	"os"
@@ -17,13 +18,21 @@ var loopCount int
 var coolingDelay int
 var help = false
 
-var secret = []byte("Stick the kettle on and find me ") // Max 32 bytes
+var encodedSecret = "QkUgU1VSRSBUTyBEUklOSyBZT1VSIE9WQUxUSU5F"
+var secret []byte
 
 func init() {
 	flag.IntVar(&coolingDelay, "c", 0, "Delay (in seconds) to wait between characters")
 	flag.IntVar(&loopCount, "l", DEFAULT_LOOP_COUNT,
 		"Number of encryptions to obtain for each character")
 	flag.BoolVar(&help, "h", false, "Show usage and exit")
+
+	var err error
+	secret, err = base64.StdEncoding.DecodeString(encodedSecret)
+	if err != nil {
+		text.PrintRed("Error base64 decoding secret")
+		os.Exit(1)
+	}
 }
 
 func rc4Oracle(prefix []byte) []byte {
