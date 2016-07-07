@@ -3,13 +3,28 @@ package main
 import (
 	"bytes"
 	"crypto/rc4"
+	"flag"
 	"fmt"
+	"os"
+	"time"
 
 	"cryptopals/utils"
 	"cryptopals/utils/text"
 )
 
+const DEFAULT_LOOP_COUNT = 10000000
+var loopCount int
+var coolingDelay int
+var help = false
+
 var secret = []byte("Stick the kettle on and find me ") // Max 32 bytes
+
+func init() {
+	flag.IntVar(&coolingDelay, "c", 0, "Delay (in seconds) to wait between characters")
+	flag.IntVar(&loopCount, "l", DEFAULT_LOOP_COUNT,
+		"Number of encryptions to obtain for each character")
+	flag.BoolVar(&help, "h", false, "Show usage and exit")
+}
 
 func rc4Oracle(prefix []byte) []byte {
 	cipher, err := rc4.NewCipher(utils.GenKey(16))
@@ -41,7 +56,9 @@ func maxIndex(results [256]int64) int {
 func printResult(result []byte) {
 	for _, c := range(result) {
 		if c == 0 {
-			fmt.Print("\033[31mX\033[m")
+			fmt.Print("\033[34mX\033[m")
+		} else if c < 32 || c > 126 {
+			fmt.Print("\033[31m?\033[m")
 		} else {
 			fmt.Printf("\033[32m%s\033[m", string(c))
 		}
@@ -50,6 +67,12 @@ func printResult(result []byte) {
 }
 
 func main() {
+	flag.Parse()
+	if help {
+		flag.PrintDefaults()
+		os.Exit(0)
+	}
+
 	text.PrintGreen("Starting")
 
 	prefix := make([]byte, 16)
@@ -63,7 +86,7 @@ func main() {
 
 		prefix = prefix[1:]
 
-		for i := 0; i < 10000000; i++ {
+		for i := 0; i < loopCount; i++ {
 			if i % 1000 == 0 {
 				fmt.Printf("\r%d\033[K", i)
 			}
@@ -87,6 +110,12 @@ func main() {
 		fmt.Print("\033[1F") // move up 1 line
 		printResult(result)
 		fmt.Print("\033[1E") // move back down
+
+		if coolingDelay > 0 && position < 15 {
+			fmt.Print("Cooling...")
+			time.Sleep(time.Duration(coolingDelay) * time.Second)
+			fmt.Print("\r\033[K")
+		}
 
 	}
 	if  bytes.Equal(result, secret) {
