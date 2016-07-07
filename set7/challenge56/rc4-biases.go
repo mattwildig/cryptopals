@@ -3,11 +3,12 @@ package main
 import (
 	"crypto/rc4"
 	"fmt"
-	"os"
 
 	"cryptopals/utils"
 	"cryptopals/utils/text"
 )
+
+const secret = 'A'
 
 func rc4Oracle(prefix []byte) []byte {
 	cipher, err := rc4.NewCipher(utils.GenKey(16))
@@ -16,7 +17,7 @@ func rc4Oracle(prefix []byte) []byte {
 	}
 
 	dest := make([]byte, len(prefix) + 1)
-	plain := append(prefix, 'A')
+	plain := append(prefix, secret)
 
 	cipher.XORKeyStream(dest, plain)
 
@@ -36,16 +37,23 @@ func main() {
 		c := rc4Oracle(prefix)
 		results[c[15]]++
 	}
-	fmt.Println("\rWriting file\033[K")
 
-	file, file_error := os.Create("rc4_counts.txt")
-	if file_error != nil {
-		panic("Error! An error has happened opening the file!")
-	}
-
+	var max int64 = 0
+	var maxIndex int = -1
 	for i, v := range(results) {
-		fmt.Fprintf(file, "%d  %d\n", i, v)
+		if v > max {
+			max = v
+			maxIndex = i
+		}
 	}
 
-	text.PrintGreen("Done")
+	// Bias at position 16 is for byte 240
+	decodedChar := byte(maxIndex) ^ byte(240)
+	fmt.Printf("Decoded char: %s\n", string(decodedChar))
+
+	if decodedChar == secret {
+		text.PrintGreen("Correctly decoded secret")
+	} else {
+		text.PrintRed("Incorrectly decoded secret")
+	}
 }
