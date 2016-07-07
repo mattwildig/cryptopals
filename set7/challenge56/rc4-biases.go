@@ -17,6 +17,8 @@ const DEFAULT_LOOP_COUNT = 10000000
 var loopCount int
 var coolingDelay int
 var help = false
+var targetChar int
+var guess string
 
 var encodedSecret = "QkUgU1VSRSBUTyBEUklOSyBZT1VSIE9WQUxUSU5F"
 var secret []byte
@@ -26,6 +28,14 @@ func init() {
 	flag.IntVar(&loopCount, "l", DEFAULT_LOOP_COUNT,
 		"Number of encryptions to obtain for each character")
 	flag.BoolVar(&help, "h", false, "Show usage and exit")
+	flag.StringVar(&guess, "g", "", "Provide known secret (use with -t)")
+	flag.IntVar(&targetChar, "t", -1, "Only determine a single char at this position")
+
+	flag.Parse()
+	if help {
+		flag.PrintDefaults()
+		os.Exit(0)
+	}
 
 	var err error
 	secret, err = base64.StdEncoding.DecodeString(encodedSecret)
@@ -76,24 +86,37 @@ func printResult(result []byte) {
 }
 
 func main() {
-	flag.Parse()
-	if help {
-		flag.PrintDefaults()
-		os.Exit(0)
-	}
-
 	text.PrintGreen("Starting")
 
-	prefix := make([]byte, 16)
+	masterPrefix := make([]byte, 15)
 	result := make([]byte, len(secret))
+
+	if guess != "" {
+		copy(result, guess)
+		if targetChar > -1 {
+			result[targetChar] = 0
+		}
+	}
 
 	printResult(result)
 	fmt.Println()
 
-	for position := 0; position < 16; position++ {
+	var start, end int
+	if targetChar > 15 {
+		start = targetChar -16
+		end = targetChar -15
+	} else if targetChar > -1 {
+		start = targetChar
+		end = targetChar +1
+	} else {
+		start = 0
+		end = 16
+	}
+
+	for position := start; position < end; position++ {
 		var results16, results32 [256]int64
 
-		prefix = prefix[1:]
+		prefix := masterPrefix[start:]
 
 		for i := 0; i < loopCount; i++ {
 			if i % 1000 == 0 {
@@ -112,7 +135,7 @@ func main() {
 		result[position] = decodedChar16
 
 		if len(prefix) + len(secret) >=32 {
-			// Bias at position 16 is for byte 224
+			// Bias at position 32 is for byte 224
 			decodedChar32 := byte(maxIndex(results32)) ^ byte(224)
 			result[position + 16] = decodedChar32
 		}
@@ -120,17 +143,19 @@ func main() {
 		printResult(result)
 		fmt.Print("\033[1E") // move back down
 
-		if coolingDelay > 0 && position < 15 {
+		if coolingDelay > 0 && position < (end -1) {
 			fmt.Print("Cooling...")
 			time.Sleep(time.Duration(coolingDelay) * time.Second)
 			fmt.Print("\r\033[K")
 		}
 
 	}
+
 	if  bytes.Equal(result, secret) {
 		text.PrintGreen("Successfully decoded secret")
 	} else {
 		text.PrintRed("Incorrectly decoded secret")
 	}
+
 	fmt.Print("\033[K")
 }
