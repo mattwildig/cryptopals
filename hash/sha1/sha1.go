@@ -117,7 +117,7 @@ func (s *SHA1_t) Init(data []byte) {
 	s.Data = data
 }
 
-func SHA1(data []byte) []byte {
+func Sum(data []byte) []byte {
 	data = pad(data)
 	s := SHA1_t{}
 	s.Init(data)
@@ -126,6 +126,6 @@ func SHA1(data []byte) []byte {
 	return s.Finalise()
 }
 
-func SHA1Sign(key, data []byte) []byte {
-	return SHA1(append(key, data...))
+func Sign(key, data []byte) []byte {
+	return Sum(append(key, data...))
 }

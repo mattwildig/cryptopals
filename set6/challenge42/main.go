@@ -133,7 +133,7 @@ func verify(rsa rsa.RSA, signature, message []byte) bool {
 		return false
 	}
 
-	our_digest := sha1.SHA1(message)
+	our_digest := sha1.Sum(message)
 
 	if bytes.Equal(digest, our_digest) {
 		return true
@@ -144,7 +144,7 @@ func verify(rsa rsa.RSA, signature, message []byte) bool {
 
 // Creates a forged signature for the message, relying on the broken parsing.
 func make_forgery(message []byte) []byte {
-	digest := sha1.SHA1(message)
+	digest := sha1.Sum(message)
 	block := make([]byte, rsaByteLength)
 	p := 0
 
@@ -179,7 +179,7 @@ func main() {
 
 	fmt.Printf("Original message: %s\n", string(message))
 
-	digest := sha1.SHA1(message)
+	digest := sha1.Sum(message)
 	block, err := create_block(digest)
 
 	if err != nil {
