@@ -70,8 +70,6 @@ func verify(rsa utils.RSA, signature, message []byte) bool {
 	// verification is encryption
 	block := rsa.EncryptBytes(signature)
 
-	fmt.Printf("After cubing back agian: %v\n", block)
-
 	//lpad block to 128 bytes
 	zeros := 128 - len(block)
 
@@ -113,18 +111,20 @@ func make_forgery(message []byte) []byte {
 
 	copy(block[14:34], digest)
 
-	fmt.Printf("Before cuberoot: %v\n", block)
+	fmt.Printf("Message to forge hashed and formatted:\n%x\n", block)
 
 	block_as_int := new(big.Int)
 	block_as_int.SetBytes(block)
 
 	forged_sig := utils.CubeRoot(block_as_int).Bytes()
 
-	return forged_sig	
+	return forged_sig
 }
 
 func main() {
 	message := []byte("Hi, everybody")
+
+	fmt.Printf("Original message: %s\n", string(message))
 
 	digest := utils.SHA1(message)
 	block, err := create_block(digest)
@@ -133,21 +133,30 @@ func main() {
 		panic(err.Error())
 	}
 
+	fmt.Printf("Hashed and formatted:\n%x\n", block)
+
 	key := utils.CreateRSA(1024, 3)
 	// Signing is decrypt
 	signature := key.DecryptBytes(block)
+
+	fmt.Printf("Signed block:\n%x\n", signature)
 
 	// mimic different user who doesn't have decryption key
 	key.D = nil
 
 	verified := verify(key, signature, message)
 
-	fmt.Println(verified)
+	fmt.Printf("Original signature verifies: %t\n", verified)
+	fmt.Println()
 
 	message_to_forge := []byte("hi Mum")
+	fmt.Printf("Message to forge: %s\n", string(message_to_forge))
+
 	forgery := make_forgery(message_to_forge)
+
+	fmt.Printf("Forged signature:\n%x\n", forgery)
 
 	verified = verify(key, forgery, message_to_forge)
 
-	fmt.Println(verified)
+	fmt.Printf("Forged signature verifies: %t\n", verified)
 }
