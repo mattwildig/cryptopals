@@ -13,7 +13,9 @@ import (
 	"fmt"
 	"math/big"
 
-	"cryptopals/utils"
+	"cryptopals/bigx"
+	"cryptopals/rsa"
+	"cryptopals/hash/sha1"
 )
 
 // The bytes of the ASN.1 prefix for SHA1. Used when verifying and when using
@@ -110,7 +112,7 @@ func create_block(digest []byte) ([]byte, error) {
 
 // Verifies that the signature is valid for the message and key, using the
 // (broken!) parse_data() function.
-func verify(rsa utils.RSA, signature, message []byte) bool {
+func verify(rsa rsa.RSA, signature, message []byte) bool {
 	// Verification is RSA encryption.
 	block := rsa.EncryptBytes(signature)
 
@@ -131,7 +133,7 @@ func verify(rsa utils.RSA, signature, message []byte) bool {
 		return false
 	}
 
-	our_digest := utils.SHA1(message)
+	our_digest := sha1.SHA1(message)
 
 	if bytes.Equal(digest, our_digest) {
 		return true
@@ -142,7 +144,7 @@ func verify(rsa utils.RSA, signature, message []byte) bool {
 
 // Creates a forged signature for the message, relying on the broken parsing.
 func make_forgery(message []byte) []byte {
-	digest := utils.SHA1(message)
+	digest := sha1.SHA1(message)
 	block := make([]byte, rsaByteLength)
 	p := 0
 
@@ -167,7 +169,7 @@ func make_forgery(message []byte) []byte {
 	block_as_int := new(big.Int)
 	block_as_int.SetBytes(block)
 
-	forged_sig := utils.CubeRoot(block_as_int).Bytes()
+	forged_sig := bigx.CubeRoot(block_as_int).Bytes()
 
 	return forged_sig
 }
@@ -177,7 +179,7 @@ func main() {
 
 	fmt.Printf("Original message: %s\n", string(message))
 
-	digest := utils.SHA1(message)
+	digest := sha1.SHA1(message)
 	block, err := create_block(digest)
 
 	if err != nil {
@@ -187,7 +189,7 @@ func main() {
 	fmt.Printf("Hashed and formatted:\n%x\n", block)
 
 	fmt.Print("Creating RSA key...")
-	key := utils.CreateRSA(rsaBitLength, 3)
+	key := rsa.CreateRSA(rsaBitLength, 3)
 	fmt.Println("done")
 
 	// Signing is RSA decryption.
