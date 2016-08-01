@@ -1,3 +1,9 @@
+// Bleichenbachers e = 3 RSA attack.
+//
+// With RSA parameter e = 3 and a broken PKCS1v15 parser that doesn't correctly
+// check that the data is right justified a forged signature can be created by
+// simply finding the cube root of an appropriately prepared block.
+
 package main
 
 import (
@@ -10,12 +16,16 @@ import (
 	"cryptopals/utils"
 )
 
+// The bytes of the ASN.1 prefix for SHA1. Used when verifying and when using
+// simple method of encoding the ASN.1.
 var ASNPrefix = []byte{0x30, 0x21, 0x30, 0x09, 0x06, 0x05, 0x2b, 0x0e, 0x03, 0x02, 0x1a, 0x05, 0x00, 0x04, 0x14}
+
+// Holds the -a command line option.
 var asnSwitch string
 
+// Size of key to use.
 const rsaBitLength = 2048
 var rsaByteLength int
-
 
 func init() {
 	flag.StringVar(&asnSwitch, "a", "s", "how to create asn: s: simple, p: processor")
@@ -24,6 +34,9 @@ func init() {
 	rsaByteLength = rsaBitLength / 8
 }
 
+// Convert the raw digest bytes into the ASN.1 encoded data structure,
+// using the method specified by the -a option. The end result is the
+// same whichever method is used.
 func encodeASN(hash []byte) []byte {
 	switch asnSwitch {
 	case "s":
@@ -36,7 +49,7 @@ func encodeASN(hash []byte) []byte {
 }
 
 // Returns the digest from the formatted data block
-// (this is the broken version, doesn't ckeck if digest is right justified)
+// (this is the broken version, doesn't ckeck if digest is right justified).
 func parse_data(data []byte) ([]byte, error) {
 
 	if data[0] != 0x00 {
@@ -50,26 +63,26 @@ func parse_data(data []byte) ([]byte, error) {
 	pos := 2
 
 	for data[pos] == 0xff {
-		pos ++
+		pos++
 	}
 
 	if data[pos] != 0x00 {
 		return nil, errors.New("First byte after 0xff block must be 0x00")
 	}
 
-	pos ++
+	pos++
 
-	if ! bytes.Equal(data[pos:pos + len(ASNPrefix)], ASNPrefix) {
+	if !bytes.Equal(data[pos:pos + len(ASNPrefix)], ASNPrefix) {
 		return nil, errors.New("Incorrect ASN.1 bytes")
 	}
 
 	pos += len(ASNPrefix)
 
-	// Just SHA1 for now (20 bytes)
+	// Just SHA1 for now (20 bytes).
 	return data[pos:pos +20], nil
 }
 
-// Returns rsaByteLength byte (rsaBitLength bit) formatted signature block
+// Returns rsaByteLength byte (rsaBitLength bit) formatted signature block.
 func create_block(digest []byte) ([]byte, error) {
 	if len(digest) != 20 {
 		return nil, errors.New("Digest should be 20 bytes (SHA1 only)")
@@ -95,11 +108,13 @@ func create_block(digest []byte) ([]byte, error) {
 	return block, nil
 }
 
+// Verifies that the signature is valid for the message and key, using the
+// (broken!) parse_data() function.
 func verify(rsa utils.RSA, signature, message []byte) bool {
-	// verification is encryption
+	// Verification is RSA encryption.
 	block := rsa.EncryptBytes(signature)
 
-	//lpad block to 128 bytes
+	// Lpad block to rsaByteLength bytes (should be just one byte).
 	zeros := rsaByteLength - len(block)
 
 	if zeros < 0 {
@@ -125,6 +140,7 @@ func verify(rsa utils.RSA, signature, message []byte) bool {
 	return false
 }
 
+// Creates a forged signature for the message, relying on the broken parsing.
 func make_forgery(message []byte) []byte {
 	digest := utils.SHA1(message)
 	block := make([]byte, rsaByteLength)
@@ -132,8 +148,9 @@ func make_forgery(message []byte) []byte {
 
 	block[p] = 0x00; p++
 	block[p] = 0x01; p++
-	// rfc3447 says there should be at least 8 0xff bytes,
-	// so we'll have that many
+
+	// RFC3447 says there should be at least 8 0xff bytes,
+	// so we'll have exactly that many.
 	for i:= 0; i < 8; i ++ {
 		block[p] = 0xff; p++
 	}
@@ -173,12 +190,12 @@ func main() {
 	key := utils.CreateRSA(rsaBitLength, 3)
 	fmt.Println("done")
 
-	// Signing is decrypt
+	// Signing is RSA decryption.
 	signature := key.DecryptBytes(block)
 
 	fmt.Printf("Signed block:\n%x\n", signature)
 
-	// mimic different user who doesn't have decryption key
+	// Mimic different user who doesn't have decryption key.
 	key.D = nil
 
 	verified := verify(key, signature, message)
