@@ -92,22 +92,20 @@ func create_block(digest []byte) ([]byte, error) {
 
 	digest = encodeASN(digest)
 
-	block := make([]byte, rsaByteLength)
+	buf := bytes.NewBuffer(make([]byte, 0, rsaByteLength))
 
 	// PKCS1v1.5 padding...
-	p := 0
-	block[p] = 0x00; p++
-	block[p] = 0x01; p++
+	buf.Write([]byte{0x00, 0x01})
 	// 0xff bytes (rsaByteLength - 2(prefix bytes) - 1(zero suffix) - len(ASN + hash))
 	// = rsaByteLength - 3 - len(digest)
 	for i := 0; i < rsaByteLength - 3 - len(digest); i++ {
-		block[p] = 0xff; p++
+		buf.WriteByte(0xff)
 	}
-	block[p] = 0x00; p++
+	buf.WriteByte(0x00)
 
-	copy(block[p:], digest)
+	buf.Write(digest)
 
-	return block, nil
+	return buf.Bytes(), nil
 }
 
 // Verifies that the signature is valid for the message and key, using the
@@ -145,25 +143,29 @@ func verify(rsa rsa.RSA, signature, message []byte) bool {
 // Creates a forged signature for the message, relying on the broken parsing.
 func make_forgery(message []byte) []byte {
 	digest := sha1.Sum(message)
-	block := make([]byte, rsaByteLength)
-	p := 0
 
-	block[p] = 0x00; p++
-	block[p] = 0x01; p++
+	// Create a suitably sized []byte.
+	block := make([]byte, rsaByteLength)
+
+	// Create a buffer using the block, but with a zero length slice,
+	// so that we will write into block.
+	buf := bytes.NewBuffer(block[:0])
+
+	buf.Write([]byte{0x00, 0x01})
 
 	// RFC3447 says there should be at least 8 0xff bytes,
 	// so we'll have exactly that many.
 	for i:= 0; i < 8; i ++ {
-		block[p] = 0xff; p++
+		buf.WriteByte(0xff)
 	}
-	block[p] = 0x00; p++
+	buf.WriteByte(0x00)
 
 	digest = encodeASN(digest)
 
-	copy(block[p:p+len(digest)], digest)
+	buf.Write(digest)
 
-	p += len(digest)
-
+	// Now use block, which has been written into, but still has correct
+	// number of trailing zeros.
 	fmt.Printf("Message to forge hashed and formatted:\n%x\n", block)
 
 	block_as_int := new(big.Int)
