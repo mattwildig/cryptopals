@@ -14,8 +14,8 @@ import (
 	"math/big"
 
 	"cryptopals/bigx"
-	"cryptopals/rsa"
 	"cryptopals/hash/sha1"
+	"cryptopals/rsa"
 )
 
 // The bytes of the ASN.1 prefix for SHA1. Used when verifying and when using
@@ -27,6 +27,7 @@ var asnSwitch string
 
 // Size of key to use.
 const rsaBitLength = 2048
+
 var rsaByteLength int
 
 func init() {
@@ -74,14 +75,14 @@ func parse_data(data []byte) ([]byte, error) {
 
 	pos++
 
-	if !bytes.Equal(data[pos:pos + len(ASNPrefix)], ASNPrefix) {
+	if !bytes.Equal(data[pos:pos+len(ASNPrefix)], ASNPrefix) {
 		return nil, errors.New("Incorrect ASN.1 bytes")
 	}
 
 	pos += len(ASNPrefix)
 
 	// Just SHA1 for now (20 bytes).
-	return data[pos:pos +20], nil
+	return data[pos : pos+20], nil
 }
 
 // Returns rsaByteLength byte (rsaBitLength bit) formatted signature block.
@@ -98,7 +99,7 @@ func create_block(digest []byte) ([]byte, error) {
 	buf.Write([]byte{0x00, 0x01})
 	// 0xff bytes (rsaByteLength - 2(prefix bytes) - 1(zero suffix) - len(ASN + hash))
 	// = rsaByteLength - 3 - len(digest)
-	for i := 0; i < rsaByteLength - 3 - len(digest); i++ {
+	for i := 0; i < rsaByteLength-3-len(digest); i++ {
 		buf.WriteByte(0xff)
 	}
 	buf.WriteByte(0x00)
@@ -155,7 +156,7 @@ func make_forgery(message []byte) []byte {
 
 	// RFC3447 says there should be at least 8 0xff bytes,
 	// so we'll have exactly that many.
-	for i:= 0; i < 8; i ++ {
+	for i := 0; i < 8; i++ {
 		buf.WriteByte(0xff)
 	}
 	buf.WriteByte(0x00)
