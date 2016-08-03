@@ -12,6 +12,7 @@ import (
 	"flag"
 	"fmt"
 	"math/big"
+	"os"
 
 	"cryptopals/bigx"
 	"cryptopals/hash/sha1"
@@ -26,14 +27,17 @@ var ASNPrefix = []byte{0x30, 0x21, 0x30, 0x09, 0x06, 0x05, 0x2b, 0x0e, 0x03, 0x0
 var asnSwitch string
 
 // Size of key to use.
-const rsaBitLength = 2048
-
-var rsaByteLength int
+var rsaBitLength, rsaByteLength int
 
 func init() {
 	flag.StringVar(&asnSwitch, "a", "s", "how to create asn: s: simple, p: processor")
+	flag.IntVar(&rsaBitLength, "k", 2048, "RSA key size to use, should be multiple of 8")
 	flag.Parse()
 
+	if rsaBitLength % 8 != 0 {
+		fmt.Fprintln(os.Stderr, "Key size should be multiple of 8")
+		os.Exit(1)
+	}
 	rsaByteLength = rsaBitLength / 8
 }
 
