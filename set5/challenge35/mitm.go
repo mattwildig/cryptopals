@@ -1,3 +1,5 @@
+// DH with negotiated groups + MITM using malicious params
+
 package main
 
 import (
@@ -5,11 +7,14 @@ import (
 	"math/big"
 	"os"
 
-	"cryptopals/utils"
+	"cryptopals/aes"
+	"cryptopals/dh"
+	"cryptopals/hash/sha1"
+	"cryptopals/keys"
 )
 
 type Server struct {
-	dh utils.DH_t
+	dh dh.Key
 	client_cert, key *big.Int
 	aes_key []byte
 }
@@ -54,29 +59,29 @@ func do_server(c chan Message) {
 		switch message.msg_type {
 		case NEG:
 			fmt.Println("S: Received negotiate, accepting")
-			server.dh = utils.InitNewDH(message.p, message.g)
+			server.dh = dh.InitNew(message.p, message.g)
 			c <- Message{msg_type: ACK}
 			continue
 		case CERT:
 			fmt.Println("S: Received cert")
 			server.client_cert = message.cert
-			server.key = utils.DHSecret(server.dh, message.cert)
-			server.aes_key = utils.SHA1(server.key.Bytes())[:16]
+			server.key = dh.Secret(server.dh, message.cert)
+			server.aes_key = sha1.Sum(server.key.Bytes())[:16]
 			c <- Message{msg_type: CERT, cert: server.dh.Public}
 			continue
 		case MSG:
-			decoded := utils.AesCbcDecrypt(message.msg, server.aes_key, message.iv)
+			decoded := aes.CbcDecrypt(message.msg, server.aes_key, message.iv)
 			// fmt.Printf("S: Raw message: %q\n", decoded)
 			var err error
-			decoded, err = utils.CheckAndStripPKCS7(decoded)
+			decoded, err = aes.CheckAndStripPKCS7(decoded)
 			if err != nil {
 				fmt.Printf("S: Error removing padding: %s\n", err.Error())
 			}
 			fmt.Printf("S: Received message:\n\t%q\n", decoded)
 			response := []byte(fmt.Sprintf("Reponse: %s", decoded))
-			response = utils.PKCS7(response, 16)
-			iv := utils.GenKey(16)
-			echo_message := utils.AesCbcEncrypt(response, server.aes_key, iv)
+			response = aes.PKCS7(response, 16)
+			iv := keys.New(16)
+			echo_message := aes.CbcEncrypt(response, server.aes_key, iv)
 			c <- Message{msg_type: MSG, msg: echo_message, iv: iv}
 			continue
 		}
@@ -88,7 +93,7 @@ var malicious_g func(*big.Int) *big.Int
 
 func init() {
 	if len(os.Args) != 2 {
-		fmt.Println("Please specify malicious G val to use")
+		fmt.Println("Please specify malicious G val to use (1, p, or p-1)")
 		os.Exit(1)
 	}
 	switch os.Args[1] {
@@ -116,7 +121,7 @@ func malicious_g_1(p *big.Int) *big.Int {
 }
 
 func decode_message_1(data, iv []byte, p *big.Int) []byte {
-	aes_key := utils.SHA1(big.NewInt(1).Bytes())[:16]
+	aes_key := sha1.Sum(big.NewInt(1).Bytes())[:16]
 	return decrypt(data, aes_key, iv)
 }
 
@@ -125,7 +130,7 @@ func malicious_g_p(p *big.Int) *big.Int {
 }
 
 func decode_message_p(data, iv []byte, p *big.Int) []byte {
-	aes_key := utils.SHA1(big.NewInt(0).Bytes())[:16]
+	aes_key := sha1.Sum(big.NewInt(0).Bytes())[:16]
 	return decrypt(data, aes_key, iv)
 }
 
@@ -135,20 +140,20 @@ func malicious_g_p_minus_1(p *big.Int) *big.Int {
 
 func decode_message_p_minus_1(data, iv []byte, p *big.Int) []byte {
 	var key, decoded []byte
-	key = utils.SHA1(big.NewInt(1).Bytes())[:16]
+	key = sha1.Sum(big.NewInt(1).Bytes())[:16]
 	decoded = decrypt(data, key, iv)
 
 	if decoded == nil {
 		fmt.Println("Second opinion")
-		key = utils.SHA1(new(big.Int).Sub(p, big.NewInt(1)).Bytes())[:16]
+		key = sha1.Sum(new(big.Int).Sub(p, big.NewInt(1)).Bytes())[:16]
 		decoded = decrypt(data, key, iv)
 	}
 	return decoded
 }
 
 func decrypt(data, key, iv []byte) []byte {
-	decoded := utils.AesCbcDecrypt(data, key, iv)
-	decoded_, e := utils.CheckAndStripPKCS7(decoded)
+	decoded := aes.CbcDecrypt(data, key, iv)
+	decoded_, e := aes.CheckAndStripPKCS7(decoded)
 	if e != nil {
 		fmt.Println(e.Error())
 	}
@@ -156,7 +161,7 @@ func decrypt(data, key, iv []byte) []byte {
 }
 
 func mitm(client chan Message) {
-	var mitm_data utils.DH_t
+	var mitm_data dh.Key
 	server := make(chan Message)
 	go do_server(server)
 
@@ -177,8 +182,6 @@ func mitm(client chan Message) {
 			}
 		case MSG:
 			fmt.Printf("M: Intercepted MSG, decoding...\n")
-
-
 			fmt.Printf("M: Decoded Message: %q\n", decode_message(message.msg, message.iv, mitm_data.P))
 			server <- message
 			message = <- server
@@ -200,7 +203,7 @@ func main() {
 	go mitm(c)
 
 	var msg Message
-	client := utils.InitNewDH(utils.P, utils.G)
+	client := dh.InitNew(dh.P, dh.G)
 	fmt.Printf("C: Sending negotiate\n")
 	c <- Message{msg_type: NEG, p: client.P, g: client.G}
 
@@ -208,7 +211,7 @@ func main() {
 
 	for msg.msg_type == NACK {
 		fmt.Printf("C: Received NACK, resending NEG\n")
-		client = utils.InitNewDH(msg.p, msg.g)
+		client = dh.InitNew(msg.p, msg.g)
 		c <- Message{msg_type: NEG, p: msg.p, g: msg.g}
 		msg = <- c
 	}
@@ -221,16 +224,16 @@ func main() {
 	fmt.Printf("C: Received CERT, sending message\n")
 
 	server_cert := msg.cert
-	secret := utils.DHSecret(client, server_cert)
-	aes_key := utils.SHA1(secret.Bytes())[:16]
+	secret := dh.Secret(client, server_cert)
+	aes_key := sha1.Sum(secret.Bytes())[:16]
 
-	iv := utils.GenKey(16)
-	message := utils.AesCbcEncrypt(utils.PKCS7([]byte("Hello, this is a message"), 16), aes_key, iv)
+	iv := keys.New(16)
+	message := aes.CbcEncrypt(aes.PKCS7([]byte("Hello, this is a message"), 16), aes_key, iv)
 
 	c <- Message{msg_type: MSG, msg: message, iv: iv}
 	msg = <- c
 
-	decoded := utils.AesCbcDecrypt(msg.msg, aes_key, msg.iv)
-	decoded, _ = utils.CheckAndStripPKCS7(decoded)
+	decoded := aes.CbcDecrypt(msg.msg, aes_key, msg.iv)
+	decoded, _ = aes.CheckAndStripPKCS7(decoded)
 	fmt.Printf("C: Received echo:\n\t%q\n", decoded)
 }
