@@ -3,8 +3,9 @@ package main
 import (
 	"fmt"
 	"math/big"
-	"cryptopals/utils"
 	"os"
+
+	"cryptopals/utils"
 )
 
 type Server struct {
@@ -96,7 +97,7 @@ func init() {
 		malicious_g = malicious_g_1
 		decode_message = decode_message_1
 	case "p":
-		fmt.Printf("Using malicious g val of p")
+		fmt.Printf("Using malicious g val of p\n")
 		malicious_g = malicious_g_p
 		decode_message = decode_message_p
 	case "p-1":
