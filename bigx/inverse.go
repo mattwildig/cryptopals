@@ -5,8 +5,6 @@ import (
 	"fmt"
 )
 
-var zero = big.NewInt(0)
-
 func InvMod(x, n *big.Int) (*big.Int, error) {
 	var r, r1, t, t1 big.Int
 	t.SetInt64(0)
@@ -15,7 +13,7 @@ func InvMod(x, n *big.Int) (*big.Int, error) {
 	r.Set(n)
 	r1.Set(x)
 
-	for ! BigZero(&r1) {
+	for !IsZero(&r1) {
 		var q, rt, tt big.Int
 		q.DivMod(&r, &r1, &rt)
 		r.Set(&r1)
@@ -35,10 +33,10 @@ func InvMod(x, n *big.Int) (*big.Int, error) {
 	return &t, nil
 }
 
-func BigEql(a, b *big.Int) bool {
+func Equal(a, b *big.Int) bool {
 	return a.Cmp(b) == 0
 }
 
-func BigZero(a *big.Int) bool {
+func IsZero(a *big.Int) bool {
 	return Zero.Cmp(a) == 0
 }
