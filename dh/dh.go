@@ -46,3 +46,8 @@ func InitNew(p, g *big.Int) Key {
 func Secret(t Key, B *big.Int) *big.Int {
 	return new(big.Int).Exp(B, t.Secret, t.P)
 }
+
+// Same as `Secret`, but as method on Key.
+func (k Key) Shared(B *big.Int) *big.Int {
+	return new(big.Int).Exp(B, k.Secret, k.P)
+}
