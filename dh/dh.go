@@ -43,6 +43,17 @@ func InitNew(p, g *big.Int) Key {
 	return r
 }
 
+// Create new key, but limit the secret value to q.
+func InitNewConfined(p, g, q *big.Int) Key {
+	k := New()
+	k.P.Set(p)
+	k.G.Set(g)
+	k.Secret.Rand(rand_, q)
+	k.Public.Exp(g, k.Secret, p)
+
+	return k
+}
+
 func Secret(t Key, B *big.Int) *big.Int {
 	return new(big.Int).Exp(B, t.Secret, t.P)
 }
