@@ -3,6 +3,7 @@ package dh
 import (
 	"math/big"
 	"math/rand"
+	"flag"
 	"fmt"
 )
 
@@ -14,9 +15,16 @@ var (
 )
 
 var rand_ *rand.Rand = rand.New(rand.NewSource(1))
+var seed int64
 
 func init() {
 	fmt.Sscan(p_hex_string, P)
+	flag.Int64Var(&seed, "dhseed", 1, "Seed DH code to create different keys")
+}
+
+// Call *after* flag.Parse() to reseed the generator
+func Reseed() {
+	rand_ = rand.New(rand.NewSource(seed))
 }
 
 type Key struct {
