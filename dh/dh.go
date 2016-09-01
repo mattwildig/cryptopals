@@ -2,9 +2,8 @@ package dh
 
 import (
 	"math/big"
-	"math/rand"
-	"flag"
-	"fmt"
+
+	"cryptopals/bigx"
 )
 
 const p_hex_string = "0xffffffffffffffffc90fdaa22168c234c4c6628b80dc1cd129024e088a67cc74020bbea63b139b22514a08798e3404ddef9519b3cd3a431b302b0a6df25f14374fe1356d6d51c245e485b576625e7ec6f44c42e9a637ed6b0bff5cb6f406b7edee386bfb5a899fa5ae9f24117c4b1fe649286651ece45b3dc2007cb8a163bf0598da48361c55d39a69163fa8fd24cf5f83655d23dca3ad961c62f356208552bb9ed529077096966d670c354e4abc9804f1746c08ca237327ffffffffffffffff"
@@ -14,17 +13,8 @@ var (
 	G = big.NewInt(2)
 )
 
-var rand_ *rand.Rand = rand.New(rand.NewSource(1))
-var seed int64
-
 func init() {
-	fmt.Sscan(p_hex_string, P)
-	flag.Int64Var(&seed, "dhseed", 1, "Seed DH code to create different keys")
-}
-
-// Call *after* flag.Parse() to reseed the generator
-func Reseed() {
-	rand_ = rand.New(rand.NewSource(seed))
+	P.SetString(p_hex_string, 0)
 }
 
 type Key struct {
@@ -45,7 +35,7 @@ func InitNew(p, g *big.Int) Key {
 	r := New()
 	r.P.Set(p)
 	r.G.Set(g)
-	r.Secret.Rand(rand_, p)
+	r.Secret = bigx.GetRandInt(p)
 	r.Public.Exp(g, r.Secret, p)
 
 	return r
@@ -56,7 +46,7 @@ func InitNewConfined(p, g, q *big.Int) Key {
 	k := New()
 	k.P.Set(p)
 	k.G.Set(g)
-	k.Secret.Rand(rand_, q)
+	k.Secret = bigx.GetRandInt(q)
 	k.Public.Exp(g, k.Secret, p)
 
 	return k
