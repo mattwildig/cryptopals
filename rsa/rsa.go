@@ -3,7 +3,6 @@ package rsa
 import (
 	"math/big"
 	"errors"
-	"crypto/rand"
 
 	"cryptopals/bigx"
 )
@@ -27,8 +26,8 @@ func CreateRSA(size, exp int) RSA {
 
 	for err != nil {
 		var et, t1, t2 big.Int
-		p, _ := rand.Prime(rand.Reader, p_size)
-		q, _ := rand.Prime(rand.Reader, p_size)
+		p := bigx.GetRandPrime(p_size)
+		q := bigx.GetRandPrime(p_size)
 
 		n.Mul(p, q)
 		et.Mul(t1.Sub(p, One), t2.Sub(q, One))

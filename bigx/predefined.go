@@ -12,4 +12,5 @@ var M = map[int64]*big.Int{
 	1: One,
 	2: Two,
 	3: Three,
+	4: big.NewInt(4),
 }

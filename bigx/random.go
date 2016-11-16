@@ -38,3 +38,19 @@ func GetRandInt(max *big.Int) *big.Int {
 		return r
 	}
 }
+
+func GetRandPrime(bits int) *big.Int {
+	var p *big.Int
+	var err error
+	if useCryptoRand {
+		p, err = crand.Prime(crand.Reader, bits)
+	} else {
+		p, err = crand.Prime(mathRand, bits)
+	}
+
+	if err != nil {
+		panic("Error! An error has happened!")
+	}
+
+	return p
+}
