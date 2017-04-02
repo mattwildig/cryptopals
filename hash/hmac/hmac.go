@@ -17,10 +17,11 @@ func init() {
 
 // assumes 64 byte block size (true for SHA1 and MD4)
 func HMAC(key, message []byte, hash func([]byte) []byte) []byte {
-	if len(key) <= 64 {
-		key = append(key, make([]byte, 64 - len(key))...)
-	} else {
+	if len(key) > 64 {
 		key = hash(key)
+	}
+	if len(key) < 64 {
+		key = append(key, make([]byte, 64 - len(key))...)
 	}
 
 	s, _ := xor.Fixed(key, ipad)
