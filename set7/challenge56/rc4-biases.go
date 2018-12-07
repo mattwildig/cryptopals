@@ -116,7 +116,7 @@ func main() {
 	for position := start; position < end; position++ {
 		var results16, results32 [256]int64
 
-		prefix := masterPrefix[start:]
+		prefix := masterPrefix[position:]
 
 		for i := 0; i < loopCount; i++ {
 			if i % 1000 == 0 {
